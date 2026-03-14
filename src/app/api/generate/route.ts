@@ -3,7 +3,7 @@ import { generateWebsite } from "@/lib/ai/engine";
 import { z } from "zod";
 
 const generateSchema = z.object({
-  prompt: z.string().min(10, "Prompt minimal 10 karakter").max(1000),
+  prompt: z.string().min(3, "Prompt minimal 3 karakter").max(1000),
 });
 
 const rateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       html: result.html,
       provider: result.provider,
       tokensUsed: result.tokensUsed,
+      enhancedPrompt: result.enhancedPrompt,
     });
   } catch (error) {
     console.error("Generate error:", error);
