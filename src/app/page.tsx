@@ -22,6 +22,19 @@ const LOADING_STEPS = [
   "Finishing touches...",
 ];
 
+function injectFallbackCss(html: string): string {
+  const hasDarkBg = /body\s*\{[^}]*(background(-color)?\s*:\s*#[0-2][0-9a-f]{5})/i.test(html);
+  if (hasDarkBg) return html;
+  const fallbackStyle = '<style id="__fb">body{background-color:#0f172a;color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:#93c5fd}h1,h2,h3,h4,h5,h6{color:#f8fafc}</style>';
+  if (html.includes('<head>')) {
+    return html.replace('<head>', '<head>' + fallbackStyle);
+  }
+  if (html.includes('<html')) {
+    return html.replace(/<html[^>]*>/, (match) => match + '<head>' + fallbackStyle + '</head>');
+  }
+  return fallbackStyle + html;
+}
+
 export default function HomePage() {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -66,14 +79,13 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: prompt.trim() }),
       });
-
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Gagal generate website");
       }
-
       const data = await res.json();
-      setGeneratedHtml(data.html);
+      const safeHtml = injectFallbackCss(data.html);
+      setGeneratedHtml(safeHtml);
       if (data.enhancedPrompt) {
         setEnhancedPrompt(data.enhancedPrompt);
       }
@@ -108,6 +120,7 @@ export default function HomePage() {
             <Sparkles className="w-4 h-4" />
             Powered by AI - Mulai Rp 15.000
           </div>
+
           <h1 className="text-4xl font-extrabold leading-tight md:text-6xl">
             Buat Website{" "}
             <span className="gradient-text">Dalam 10 Detik</span>
