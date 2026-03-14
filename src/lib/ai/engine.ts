@@ -17,7 +17,14 @@ function getModel(provider: AIProvider) {
 }
 
 function getMaxTokens(provider: AIProvider) {
-  return provider === "claude-haiku" ? 4000 : 8000;
+  switch (provider) {
+    case "gemini":
+      return 16000;
+    case "claude-sonnet":
+      return 12000;
+    case "claude-haiku":
+      return 8000;
+  }
 }
 
 export interface GenerateResult {
@@ -42,20 +49,67 @@ function extractHtml(text: string): string {
     }
   }
 
-  if (text.includes("<!DOCTYPE") || text.includes("<html")) {
-    const start = text.indexOf("<!DOCTYPE") !== -1 ? text.indexOf("<!DOCTYPE") : text.indexOf("<html");
-    const end = text.lastIndexOf("</html>");
-    if (end !== -1) {
-      return text.substring(start, end + 7).trim();
+  const start = text.indexOf("<!DOCTYPE");
+  if (start === -1) {
+    const htmlStart = text.indexOf("<html");
+    if (htmlStart !== -1) {
+      const end = text.lastIndexOf("</html>");
+      if (end !== -1) return text.substring(htmlStart, end + 7).trim();
+      return text.substring(htmlStart).trim();
     }
+  } else {
+    const end = text.lastIndexOf("</html>");
+    if (end !== -1) return text.substring(start, end + 7).trim();
     return text.substring(start).trim();
   }
 
   return text.trim();
 }
 
+function repairHtml(html: string): string {
+  let repaired = html;
+
+  // Ensure closing tags exist for critical elements
+  if (!repaired.includes("</body>")) {
+    repaired += "\n</body>";
+  }
+  if (!repaired.includes("</html>")) {
+    repaired += "\n</html>";
+  }
+
+  // Close any unclosed style tags
+  const styleOpens = (repaired.match(/<style/g) || []).length;
+  const styleCloses = (repaired.match(/<\/style>/g) || []).length;
+  if (styleOpens > styleCloses) {
+    // Find the last unclosed <style> and close it before </head> or <body>
+    const bodyIndex = repaired.indexOf("<body");
+    if (bodyIndex !== -1) {
+      repaired = repaired.substring(0, bodyIndex) + "</style>\n" + repaired.substring(bodyIndex);
+    } else {
+      repaired += "</style>";
+    }
+  }
+
+  // Close any unclosed script tags
+  const scriptOpens = (repaired.match(/<script/g) || []).length;
+  const scriptCloses = (repaired.match(/<\/script>/g) || []).length;
+  if (scriptOpens > scriptCloses) {
+    repaired += "</script>";
+  }
+
+  // Ensure head is closed
+  if (repaired.includes("<head") && !repaired.includes("</head>")) {
+    const bodyIdx = repaired.indexOf("<body");
+    if (bodyIdx !== -1) {
+      repaired = repaired.substring(0, bodyIdx) + "</head>\n" + repaired.substring(bodyIdx);
+    }
+  }
+
+  return repaired;
+}
+
 function validateHtml(html: string): boolean {
-  return html.includes("<") && html.includes(">") && html.length > 100;
+  return html.includes("<") && html.includes(">") && html.length > 200;
 }
 
 async function enhancePrompt(userPrompt: string): Promise<string> {
@@ -71,6 +125,7 @@ async function enhancePrompt(userPrompt: string): Promise<string> {
       system: ENHANCE_PROMPT,
       prompt: userPrompt,
     });
+
     const enhanced = result.text.trim();
     console.log("Enhanced prompt:", enhanced);
     return enhanced;
@@ -98,9 +153,12 @@ export async function generateWebsite(
     console.log("Raw AI output length:", result.text.length);
     console.log("Raw AI output starts with:", result.text.substring(0, 100));
 
-    const html = extractHtml(result.text);
+    let html = extractHtml(result.text);
     console.log("Extracted HTML length:", html.length);
-    console.log("Extracted HTML starts with:", html.substring(0, 100));
+
+    // Repair potentially truncated HTML
+    html = repairHtml(html);
+    console.log("Repaired HTML length:", html.length);
 
     if (!validateHtml(html)) {
       console.error("HTML validation failed. First 200 chars:", html.substring(0, 200));
@@ -141,7 +199,9 @@ export async function editWebsite(
     prompt: `Current HTML:\n${currentHtml}\n\nEdit: ${editPrompt}`,
   });
 
-  const html = extractHtml(result.text);
+  let html = extractHtml(result.text);
+  html = repairHtml(html);
+
   return {
     html,
     provider,
