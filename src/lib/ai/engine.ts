@@ -8,11 +8,11 @@ type AIProvider = "gemini" | "claude-sonnet" | "claude-haiku";
 function getModel(provider: AIProvider) {
   switch (provider) {
     case "gemini":
-      return google("gemini-2.0-flash");
+      return google("gemini-2.5-flash");
     case "claude-sonnet":
-      return anthropic("claude-sonnet-4-5-20250514");
+      return anthropic("claude-sonnet-4-5");
     case "claude-haiku":
-      return anthropic("claude-haiku-4-5-20250514");
+      return anthropic("claude-haiku-4-5");
   }
 }
 
