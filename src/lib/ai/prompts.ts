@@ -5,6 +5,7 @@ CRITICAL OUTPUT RULES:
 2. ALL CSS must be inside a single <style> tag in <head>
 3. ALL JavaScript must be inside a single <script> tag before </body>
 4. The output must be a fully self-contained HTML file that works when opened in any browser
+5. CRITICAL: ALL elements must be visible immediately — NEVER use opacity:0, visibility:hidden, or display:none as initial states. NO scroll-triggered reveal animations that hide content initially.
 
 DESIGN SYSTEM:
 - Use CSS custom properties (variables) for colors, spacing, and typography
@@ -27,7 +28,7 @@ VISUAL EXCELLENCE:
 - Use modern gradients (subtle, max 2-3 colors) for backgrounds or accents
 - Card components with box-shadow and hover lift effect (transform: translateY(-4px))
 - Smooth transitions on ALL interactive elements (0.3s ease)
-- Subtle scroll-triggered fade-in animations using IntersectionObserver
+- CSS-only animations (no JavaScript-based reveal/fade animations)
 - Glass-morphism or frosted glass effects where appropriate (backdrop-filter: blur)
 - Professional icon system using inline SVG (simple, clean line icons)
 - Decorative elements: subtle patterns, gradient orbs, or geometric shapes
@@ -55,9 +56,9 @@ RESPONSIVENESS:
 INTERACTIVITY (JavaScript):
 - Smooth scroll for anchor links
 - Mobile menu toggle with slide animation
-- Scroll-triggered animations (fade-in, slide-up) using IntersectionObserver
 - Sticky header with background change on scroll
 - Active nav link highlighting based on scroll position
+- Hover effects and micro-interactions via CSS transitions only
 
 CONTENT:
 - Write realistic, professional content in the SAME LANGUAGE as the user prompt
