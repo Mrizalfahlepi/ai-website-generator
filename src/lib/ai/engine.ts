@@ -1,7 +1,7 @@
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
-import { SYSTEM_PROMPT } from "./prompts";
+import { SYSTEM_PROMPT, ENHANCE_PROMPT } from "./prompts";
 
 type AIProvider = "gemini" | "claude-sonnet" | "claude-haiku";
 
@@ -24,10 +24,10 @@ export interface GenerateResult {
   html: string;
   provider: AIProvider;
   tokensUsed: { input: number; output: number };
+  enhancedPrompt?: string;
 }
 
 function extractHtml(text: string): string {
-  // Try multiple patterns for markdown code fences
   const patterns = [
     /```html\s*\n([\s\S]*?)\n\s*```/,
     /```html\s*([\s\S]*?)```/,
@@ -42,30 +42,42 @@ function extractHtml(text: string): string {
     }
   }
 
-  // If text starts with <!DOCTYPE or <html, return as-is
-  const trimmed = text.trim();
-  if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html") || trimmed.startsWith("<head")) {
-    return trimmed;
+  if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+    const start = text.indexOf("<!DOCTYPE") !== -1 ? text.indexOf("<!DOCTYPE") : text.indexOf("<html");
+    const end = text.lastIndexOf("</html>");
+    if (end !== -1) {
+      return text.substring(start, end + 7).trim();
+    }
+    return text.substring(start).trim();
   }
 
-  // Last resort: find HTML content anywhere in text
-  const htmlStart = trimmed.indexOf("<!DOCTYPE");
-  if (htmlStart === -1) {
-    const htmlTagStart = trimmed.indexOf("<html");
-    if (htmlTagStart !== -1) return trimmed.substring(htmlTagStart);
-  } else {
-    return trimmed.substring(htmlStart);
-  }
-
-  return trimmed;
+  return text.trim();
 }
 
 function validateHtml(html: string): boolean {
-  return (
-    html.includes("<html") ||
-    html.includes("<!DOCTYPE") ||
-    html.includes("<body")
-  );
+  return html.includes("<") && html.includes(">") && html.length > 100;
+}
+
+async function enhancePrompt(userPrompt: string): Promise<string> {
+  if (userPrompt.length > 100) {
+    return userPrompt;
+  }
+
+  try {
+    console.log("Enhancing short prompt:", userPrompt);
+    const result = await generateText({
+      model: google("gemini-2.5-flash"),
+      maxTokens: 500,
+      system: ENHANCE_PROMPT,
+      prompt: userPrompt,
+    });
+    const enhanced = result.text.trim();
+    console.log("Enhanced prompt:", enhanced);
+    return enhanced;
+  } catch (error) {
+    console.warn("Prompt enhancement failed, using original:", error);
+    return userPrompt;
+  }
 }
 
 export async function generateWebsite(
@@ -73,18 +85,20 @@ export async function generateWebsite(
   provider: AIProvider = "gemini"
 ): Promise<GenerateResult> {
   try {
+    const finalPrompt = await enhancePrompt(userPrompt);
+    console.log("Final prompt to AI:", finalPrompt.substring(0, 200));
+
     const result = await generateText({
       model: getModel(provider),
       maxTokens: getMaxTokens(provider),
       system: SYSTEM_PROMPT,
-      prompt: userPrompt,
+      prompt: finalPrompt,
     });
 
     console.log("Raw AI output length:", result.text.length);
     console.log("Raw AI output starts with:", result.text.substring(0, 100));
 
     const html = extractHtml(result.text);
-
     console.log("Extracted HTML length:", html.length);
     console.log("Extracted HTML starts with:", html.substring(0, 100));
 
@@ -100,6 +114,7 @@ export async function generateWebsite(
         input: result.usage?.promptTokens || 0,
         output: result.usage?.completionTokens || 0,
       },
+      enhancedPrompt: finalPrompt !== userPrompt ? finalPrompt : undefined,
     };
   } catch (error) {
     if (provider === "gemini") {
@@ -127,7 +142,6 @@ export async function editWebsite(
   });
 
   const html = extractHtml(result.text);
-
   return {
     html,
     provider,
