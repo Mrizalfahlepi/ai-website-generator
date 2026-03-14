@@ -1,22 +1,14 @@
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { google } from "@ai-sdk/google";
 import { SYSTEM_PROMPT } from "./prompts";
 
-const deepseek = createOpenAICompatible({
-  name: "deepseek",
-  baseURL: "https://api.deepseek.com/v1",
-  headers: {
-    Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-  },
-});
-
-type AIProvider = "deepseek" | "claude-sonnet" | "claude-haiku";
+type AIProvider = "gemini" | "claude-sonnet" | "claude-haiku";
 
 function getModel(provider: AIProvider) {
   switch (provider) {
-    case "deepseek":
-      return deepseek.chatModel("deepseek-chat");
+    case "gemini":
+      return google("gemini-2.0-flash");
     case "claude-sonnet":
       return anthropic("claude-sonnet-4-5-20250514");
     case "claude-haiku":
@@ -50,7 +42,7 @@ function validateHtml(html: string): boolean {
 
 export async function generateWebsite(
   userPrompt: string,
-  provider: AIProvider = "deepseek"
+  provider: AIProvider = "gemini"
 ): Promise<GenerateResult> {
   try {
     const result = await generateText({
@@ -75,8 +67,8 @@ export async function generateWebsite(
       },
     };
   } catch (error) {
-    if (provider === "deepseek") {
-      console.warn("DeepSeek failed, falling back to Claude Haiku");
+    if (provider === "gemini") {
+      console.warn("Gemini failed, falling back to Claude Haiku");
       return generateWebsite(userPrompt, "claude-haiku");
     }
     if (provider === "claude-haiku") {
