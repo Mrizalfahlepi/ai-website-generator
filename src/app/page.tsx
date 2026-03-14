@@ -159,7 +159,7 @@ export default function HomePage() {
                 srcDoc={generatedHtml}
                 title="Website Preview"
                 className="w-full h-full"
-                sandbox="allow-scripts"
+                sandbox="allow-scripts allow-same-origin"
               />
             </div>
           </div>
