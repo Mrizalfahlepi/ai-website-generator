@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateWebsite } from "@/lib/ai/engine";
+import { createServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const generateSchema = z.object({
@@ -43,6 +44,24 @@ export async function POST(req: NextRequest) {
 
     const result = await generateWebsite(parsed.data.prompt);
 
+    // Save to Supabase (non-blocking, don't fail if DB errors)
+    try {
+      const supabase = createServerClient();
+      const { error: dbError } = await supabase.from("websites").insert({
+        prompt: parsed.data.prompt,
+        enhanced_prompt: result.enhancedPrompt || null,
+        html: result.html,
+        provider: result.provider,
+        tokens_used: result.tokensUsed,
+        title: extractTitle(result.html),
+      });
+      if (dbError) {
+        console.warn("Failed to save website to DB:", dbError.message);
+      }
+    } catch (dbErr) {
+      console.warn("Supabase save error (non-blocking):", dbErr);
+    }
+
     return NextResponse.json({
       html: result.html,
       provider: result.provider,
@@ -56,6 +75,11 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function extractTitle(html: string): string {
+  const match = html.match(/<title>([^<]*)<\/title>/i);
+  return match?.[1] || "Untitled Website";
 }
 
 export const runtime = "nodejs";
