@@ -17,7 +17,7 @@ create table public.websites (
   user_id uuid references public.profiles(id) on delete cascade,
   prompt text not null,
   html_output text not null,
-  provider text not null default 'deepseek',
+  provider text not null default 'gemini',
   tokens_input integer default 0,
   tokens_output integer default 0,
   is_public boolean default false,
@@ -55,7 +55,7 @@ alter table public.websites enable row level security;
 alter table public.transactions enable row level security;
 alter table public.edits enable row level security;
 
--- Policies: Users can only access their own data
+-- Policies
 create policy "Users can view own profile" on public.profiles
   for select using (auth.uid() = id);
 
