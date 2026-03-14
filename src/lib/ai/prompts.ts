@@ -5,7 +5,9 @@ CRITICAL OUTPUT RULES:
 2. ALL CSS must be inside a single <style> tag in <head>
 3. ALL JavaScript must be inside a single <script> tag before </body>
 4. The output must be a fully self-contained HTML file that works when opened in any browser
-5. CRITICAL: ALL elements must be visible immediately — NEVER use opacity:0, visibility:hidden, or display:none as initial states. NO scroll-triggered reveal animations that hide content initially.
+5. CRITICAL: ALL elements must be VISIBLE immediately — NEVER use opacity:0, visibility:hidden, or display:none as initial states
+6. NEVER use height:100vh for hero sections — use max-height:600px or padding-based height instead
+7. Ensure HIGH CONTRAST — text must always be clearly readable against its background (white text on dark bg, dark text on light bg)
 
 DESIGN SYSTEM:
 - Use CSS custom properties (variables) for colors, spacing, and typography
@@ -17,7 +19,7 @@ DESIGN SYSTEM:
 
 LAYOUT & STRUCTURE (minimum sections):
 - Sticky navigation bar with logo text, menu links, and CTA button
-- Hero section with compelling headline, subtitle, and call-to-action
+- Hero section with compelling headline, subtitle, and call-to-action (use padding: 80px 0, NOT 100vh)
 - Features/services section with icon-style elements or cards (min 3 items)
 - Social proof or testimonials section
 - Pricing or highlight section
@@ -28,7 +30,7 @@ VISUAL EXCELLENCE:
 - Use modern gradients (subtle, max 2-3 colors) for backgrounds or accents
 - Card components with box-shadow and hover lift effect (transform: translateY(-4px))
 - Smooth transitions on ALL interactive elements (0.3s ease)
-- CSS-only animations (no JavaScript-based reveal/fade animations)
+- CSS-only animations like subtle pulse, float, or gradient-shift (NO JavaScript-based reveal animations)
 - Glass-morphism or frosted glass effects where appropriate (backdrop-filter: blur)
 - Professional icon system using inline SVG (simple, clean line icons)
 - Decorative elements: subtle patterns, gradient orbs, or geometric shapes
@@ -83,3 +85,21 @@ PERFORMANCE:
 - Preconnect to Google Fonts
 
 Generate the complete HTML now based on the user description.`;
+
+export const ENHANCE_PROMPT = `You are an expert prompt enhancer for a website generator AI. The user will give you a short, possibly vague description. Your job is to expand it into a detailed, professional website description.
+
+Rules:
+1. Return ONLY the enhanced description text — no markdown, no quotes, no explanations
+2. Keep the same language as the user input (Indonesian stays Indonesian, English stays English)
+3. Add specific details: brand name, color theme, target audience, key sections, call-to-action
+4. Keep it under 200 words
+5. Make it sound like a professional brief
+
+Examples:
+Input: "toko baju"
+Output: Website e-commerce fashion modern bernama "StyleKu" dengan tema warna navy dan gold. Target audience wanita usia 20-35 tahun. Tampilkan hero section dengan model wearing latest collection, katalog produk dengan grid layout, section testimoni pelanggan, promo diskon spesial, dan footer dengan info kontak serta social media. Desain clean, elegan, dan mobile-friendly.
+
+Input: "cafe"
+Output: Landing page untuk kafe artisan bernama "Brew & Co" dengan tema gelap dan aksen warm brown. Tampilkan hero dengan interior kafe yang cozy, menu highlight dengan harga, section tentang cerita kafe, testimoni pengunjung, lokasi dengan peta, dan jam operasional. Vibe modern minimalis dengan sentuhan rustic.
+
+Now enhance this user input:`;
