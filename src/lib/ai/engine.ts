@@ -27,9 +27,37 @@ export interface GenerateResult {
 }
 
 function extractHtml(text: string): string {
-  const match = text.match(/```html\n([\s\S]*?)\n```/);
-  if (match) return match[1];
-  return text;
+  // Try multiple patterns for markdown code fences
+  const patterns = [
+    /```html\s*\n([\s\S]*?)\n\s*```/,
+    /```html\s*([\s\S]*?)```/,
+    /```\s*\n([\s\S]*?)\n\s*```/,
+    /```([\s\S]*?)```/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1] && (match[1].includes("<html") || match[1].includes("<!DOCTYPE") || match[1].includes("<body"))) {
+      return match[1].trim();
+    }
+  }
+
+  // If text starts with <!DOCTYPE or <html, return as-is
+  const trimmed = text.trim();
+  if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html") || trimmed.startsWith("<head")) {
+    return trimmed;
+  }
+
+  // Last resort: find HTML content anywhere in text
+  const htmlStart = trimmed.indexOf("<!DOCTYPE");
+  if (htmlStart === -1) {
+    const htmlTagStart = trimmed.indexOf("<html");
+    if (htmlTagStart !== -1) return trimmed.substring(htmlTagStart);
+  } else {
+    return trimmed.substring(htmlStart);
+  }
+
+  return trimmed;
 }
 
 function validateHtml(html: string): boolean {
@@ -52,9 +80,16 @@ export async function generateWebsite(
       prompt: userPrompt,
     });
 
+    console.log("Raw AI output length:", result.text.length);
+    console.log("Raw AI output starts with:", result.text.substring(0, 100));
+
     const html = extractHtml(result.text);
 
+    console.log("Extracted HTML length:", html.length);
+    console.log("Extracted HTML starts with:", html.substring(0, 100));
+
     if (!validateHtml(html)) {
+      console.error("HTML validation failed. First 200 chars:", html.substring(0, 200));
       throw new Error("AI output is not valid HTML");
     }
 
@@ -68,11 +103,11 @@ export async function generateWebsite(
     };
   } catch (error) {
     if (provider === "gemini") {
-      console.warn("Gemini failed, falling back to Claude Haiku");
+      console.warn("Gemini failed, falling back to Claude Haiku", error);
       return generateWebsite(userPrompt, "claude-haiku");
     }
     if (provider === "claude-haiku") {
-      console.warn("Claude Haiku failed, falling back to Claude Sonnet");
+      console.warn("Claude Haiku failed, falling back to Claude Sonnet", error);
       return generateWebsite(userPrompt, "claude-sonnet");
     }
     throw error;
